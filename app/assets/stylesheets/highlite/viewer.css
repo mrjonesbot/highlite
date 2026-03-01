@@ -9,21 +9,41 @@
 
 .highlite-text-layer {
   position: absolute;
+  text-align: initial;
   inset: 0;
-  overflow: hidden;
+  overflow: clip;
   opacity: 1;
   line-height: 1;
   text-size-adjust: none;
   forced-color-adjust: none;
+  transform-origin: 0 0;
   z-index: 2;
+
+  /* PDF.js TextLayer CSS variable calculations.
+     --total-scale-factor is set from JS (scale * devicePixelRatio).
+     --min-font-size is set by PDF.js TextLayer constructor. */
+  --text-scale-factor: calc(var(--total-scale-factor, 1) * var(--min-font-size, 1));
+  --min-font-size-inv: calc(1 / var(--min-font-size, 1));
 }
 
-.highlite-text-layer span {
+.highlite-text-layer :is(span, br) {
   color: transparent;
   position: absolute;
   white-space: pre;
   cursor: text;
   transform-origin: 0% 0%;
+}
+
+/* PDF.js sets --font-height, --scale-x, --rotate per span via inline styles.
+   These rules compute the actual font-size and transform from those variables. */
+.highlite-text-layer > :not(.markedContent),
+.highlite-text-layer .markedContent span:not(.markedContent) {
+  z-index: 1;
+  --font-height: 0;
+  font-size: calc(var(--text-scale-factor) * var(--font-height));
+  --scale-x: 1;
+  --rotate: 0deg;
+  transform: rotate(var(--rotate)) scaleX(var(--scale-x)) scale(var(--min-font-size-inv));
 }
 
 .highlite-text-layer ::selection {

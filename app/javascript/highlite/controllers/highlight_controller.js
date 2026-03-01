@@ -56,6 +56,7 @@ export default class extends Controller {
     // External store sync handlers (e.g. when highlights_panel clears all)
     this._onExternalClear = this._handleExternalClear.bind(this)
     this._onExternalRemove = this._handleExternalRemove.bind(this)
+    this._onPagesRerendered = this._renderAllHighlights.bind(this)
 
     this.element.addEventListener(
       "highlite:document-loaded",
@@ -68,6 +69,10 @@ export default class extends Controller {
     this.element.addEventListener(
       "highlite:highlight-removed",
       this._onExternalRemove
+    )
+    this.element.addEventListener(
+      "highlite:pages-rerendered",
+      this._onPagesRerendered
     )
     this.element.addEventListener("mouseup", this._onMouseUp)
     this.element.addEventListener("mousedown", this._onMouseDown)
@@ -94,6 +99,10 @@ export default class extends Controller {
     this.element.removeEventListener(
       "highlite:highlight-removed",
       this._onExternalRemove
+    )
+    this.element.removeEventListener(
+      "highlite:pages-rerendered",
+      this._onPagesRerendered
     )
     this.element.removeEventListener("mouseup", this._onMouseUp)
     this.element.removeEventListener("mousedown", this._onMouseDown)
@@ -202,9 +211,11 @@ export default class extends Controller {
 
     const pageNum = parseInt(pageWrapper.dataset.pageNumber, 10)
     const text = selection.toString().trim()
-    const rects = this._getSelectionRects(selection, pageWrapper)
+    const rawRects = this._getRawSelectionRects(selection, pageWrapper)
 
-    if (rects.length === 0) return
+    if (rawRects.length === 0) return
+
+    const rects = this._padAndNormalizeRects(rawRects, pageWrapper)
 
     // Store pending selection and show popup
     this._pendingSelection = { pageNum, text, rects }
@@ -421,12 +432,10 @@ export default class extends Controller {
   }
 
   /**
-   * Convert Selection API ranges to rectangles relative to the page wrapper.
-   * @param {Selection} selection
-   * @param {HTMLElement} pageWrapper
-   * @returns {Array<{x: number, y: number, w: number, h: number}>}
+   * Get raw selection rectangles relative to the page wrapper (no padding).
+   * Used for text matching before padding is applied for the visual overlay.
    */
-  _getSelectionRects(selection, pageWrapper) {
+  _getRawSelectionRects(selection, pageWrapper) {
     const rects = []
     const wrapperRect = pageWrapper.getBoundingClientRect()
 
@@ -447,6 +456,71 @@ export default class extends Controller {
     }
 
     return this._mergeOverlappingRects(rects)
+  }
+
+  /**
+   * Add vertical padding to rects and normalize to 0-1 ratios.
+   */
+  _padAndNormalizeRects(rawRects, pageWrapper) {
+    const wrapperRect = pageWrapper.getBoundingClientRect()
+    const pageW = wrapperRect.width
+    const pageH = wrapperRect.height
+
+    return rawRects.map((r) => {
+      const padTop = r.h * 0.15
+      const padBottom = r.h * 0.55
+      const hPad = r.h * 0.1
+      return {
+        x: (r.x - hPad) / pageW,
+        y: (r.y - padTop) / pageH,
+        w: (r.w + hPad * 2) / pageW,
+        h: (r.h + padTop + padBottom) / pageH,
+      }
+    })
+  }
+
+  /**
+   * Get accurate text by matching raw selection rects against text layer spans.
+   * This avoids DOM range ordering issues where selection.toString() returns
+   * text from spans that are in DOM order but not visual reading order.
+   */
+  _getTextFromRects(pageWrapper, rawRects) {
+    const textLayer = pageWrapper.querySelector(".highlite-text-layer")
+    if (!textLayer) return ""
+
+    const wrapperRect = pageWrapper.getBoundingClientRect()
+    const spans = textLayer.querySelectorAll("span")
+    const matched = []
+
+    for (const span of spans) {
+      if (!span.textContent) continue
+      const sr = span.getBoundingClientRect()
+      const spanBox = {
+        x: sr.left - wrapperRect.left,
+        y: sr.top - wrapperRect.top,
+        w: sr.width,
+        h: sr.height,
+      }
+
+      if (rawRects.some((r) => this._rectsOverlap(spanBox, r))) {
+        matched.push(span.textContent)
+      }
+    }
+
+    return matched.join(" ").replace(/\s+/g, " ").trim()
+  }
+
+  /**
+   * Check if two rectangles overlap with sufficient vertical intersection.
+   * Requires at least 50% vertical overlap relative to the smaller rect
+   * to avoid matching spans from adjacent lines (inflated by line-height).
+   */
+  _rectsOverlap(a, b) {
+    const overlapX = Math.min(a.x + a.w, b.x + b.w) - Math.max(a.x, b.x)
+    const overlapY = Math.min(a.y + a.h, b.y + b.h) - Math.max(a.y, b.y)
+    if (overlapX <= 0 || overlapY <= 0) return false
+    const minH = Math.min(a.h, b.h)
+    return overlapY > minH * 0.5
   }
 
   /**
@@ -545,6 +619,8 @@ export default class extends Controller {
     }
 
     const wrapperRect = this._drawPage.getBoundingClientRect()
+    const pageW = wrapperRect.width
+    const pageH = wrapperRect.height
     const endX = event.clientX - wrapperRect.left
     const endY = event.clientY - wrapperRect.top
 
@@ -561,7 +637,7 @@ export default class extends Controller {
         page: pageNum,
         type: "area",
         color: this.activeColorValue,
-        rects: [{ x, y, w, h }],
+        rects: [{ x: x / pageW, y: y / pageH, w: w / pageW, h: h / pageH }],
         text: "",
       })
       this._renderPageHighlights(pageNum)
@@ -656,6 +732,8 @@ export default class extends Controller {
     existing.forEach((el) => el.remove())
 
     const highlights = this.store.getByPage(pageNum)
+    const pageW = page.offsetWidth
+    const pageH = page.offsetHeight
 
     for (const highlight of highlights) {
       for (const rect of highlight.rects) {
@@ -664,10 +742,10 @@ export default class extends Controller {
         div.dataset.highlightId = highlight.id
         div.style.cssText = `
           position: absolute;
-          left: ${rect.x}px;
-          top: ${rect.y}px;
-          width: ${rect.w}px;
-          height: ${rect.h}px;
+          left: ${rect.x * pageW}px;
+          top: ${rect.y * pageH}px;
+          width: ${rect.w * pageW}px;
+          height: ${rect.h * pageH}px;
           background-color: ${highlight.color};
           opacity: 0.3;
           mix-blend-mode: multiply;

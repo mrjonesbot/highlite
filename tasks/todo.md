@@ -1,4 +1,4 @@
-# PDF Highlighter Gem — Build Plan
+# Highlite Gem — Build Plan
 
 ## Overview
 
@@ -12,51 +12,51 @@ A Ruby gem (Rails engine) that provides a full-featured PDF viewer with highligh
 - **Right sidebar** (default + overridable): Highlights list with search, grouped by page. Users can replace with their own partial.
 
 ### Key design decisions
-- **Stimulus controllers** dispatch custom events (`pdf-highlighter:highlight-created`, etc.) so host apps can react
-- **Right sidebar override** — ships a default highlights panel, but host apps can provide their own partial at `app/views/pdf_highlighter/_right_sidebar.html.erb` which takes precedence (Rails engine view override convention)
+- **Stimulus controllers** dispatch custom events (`highlite:highlight-created`, etc.) so host apps can react
+- **Right sidebar override** — ships a default highlights panel, but host apps can provide their own partial at `app/views/highlite/_right_sidebar.html.erb` which takes precedence (Rails engine view override convention)
 - **PDF.js via CDN** (jsdelivr) — pinned in engine's importmap config, no npm required
 - **localStorage by default** for highlight persistence, with an optional `Highlightable` model concern for server-side storage
 - **tailwindcss-ruby** (`flavorjones/tailwindcss-ruby`) — compiles Tailwind CSS within the gem so the host app doesn't need Tailwind installed (but works great if they do)
-- **CSS strategy** — gem ships a pre-compiled CSS file built with tailwindcss-ruby during development; the host app includes it via `stylesheet_link_tag "pdf_highlighter/viewer"`
+- **CSS strategy** — gem ships a pre-compiled CSS file built with tailwindcss-ruby during development; the host app includes it via `stylesheet_link_tag "highlite/viewer"`
 
 ### Stimulus event API (dispatched on the viewer element)
 ```
-pdf-highlighter:document-loaded   { detail: { pageCount, title, outline } }
-pdf-highlighter:page-changed      { detail: { page, totalPages } }
-pdf-highlighter:highlight-created  { detail: { id, page, type, color, text, rects } }
-pdf-highlighter:highlight-removed  { detail: { id } }
-pdf-highlighter:highlight-selected { detail: { id, page } }
-pdf-highlighter:highlights-cleared { detail: { page } }  // null page = all
+highlite:document-loaded   { detail: { pageCount, title, outline } }
+highlite:page-changed      { detail: { page, totalPages } }
+highlite:highlight-created  { detail: { id, page, type, color, text, rects } }
+highlite:highlight-removed  { detail: { id } }
+highlite:highlight-selected { detail: { id, page } }
+highlite:highlights-cleared { detail: { page } }  // null page = all
 ```
 
 ## Directory structure
 
 ```
-pdf_highlighter/
-├── pdf_highlighter.gemspec
+highlite/
+├── highlite.gemspec
 ├── Gemfile
 ├── Rakefile
 ├── README.md
 ├── lib/
-│   ├── pdf_highlighter.rb                        # Main entry + autoload
-│   ├── pdf_highlighter/
+│   ├── highlite.rb                        # Main entry + autoload
+│   ├── highlite/
 │   │   ├── version.rb
 │   │   ├── engine.rb                             # Rails engine config + importmap
 │   │   └── configuration.rb                      # Config DSL (pdf.js version, colors, etc.)
 │   └── generators/
-│       └── pdf_highlighter/
+│       └── highlite/
 │           └── install/
-│               ├── install_generator.rb           # rails g pdf_highlighter:install
+│               ├── install_generator.rb           # rails g highlite:install
 │               └── templates/
 │                   ├── initializer.rb.tt
 │                   └── _right_sidebar.html.erb.tt # Override template
 ├── app/
 │   ├── assets/
 │   │   └── stylesheets/
-│   │       └── pdf_highlighter/
+│   │       └── highlite/
 │   │           └── viewer.css                     # Minimal required styles (text layer, etc.)
 │   ├── javascript/
-│   │   └── pdf_highlighter/
+│   │   └── highlite/
 │   │       ├── index.js                           # Registers all controllers with Stimulus
 │   │       ├── controllers/
 │   │       │   ├── viewer_controller.js           # PDF.js rendering, zoom, scroll
@@ -67,10 +67,10 @@ pdf_highlighter/
 │   │           ├── pdf_renderer.js                # PDF.js wrapper (load, render, text layer)
 │   │           └── highlight_store.js             # State management + localStorage
 │   ├── helpers/
-│   │   └── pdf_highlighter/
-│   │       └── application_helper.rb              # pdf_highlighter_viewer helper method
+│   │   └── highlite/
+│   │       └── application_helper.rb              # highlite_viewer helper method
 │   └── views/
-│       └── pdf_highlighter/
+│       └── highlite/
 │           ├── _viewer.html.erb                   # Main 3-panel layout
 │           ├── _toolbar.html.erb                  # Top bar (zoom, export, change PDF)
 │           ├── _left_sidebar.html.erb             # Outline + Pages tabs
@@ -79,17 +79,17 @@ pdf_highlighter/
 └── spec/
     ├── spec_helper.rb
     └── lib/
-        └── pdf_highlighter_spec.rb
+        └── highlite_spec.rb
 ```
 
 ## Build tasks
 
 ### Phase 1: Foundation
 - [ ] 1.1 Set up gemspec with correct dependencies (rails >= 7.1, importmap-rails)
-- [ ] 1.2 Create Rails engine (PdfHighlighter::Engine) with importmap config
+- [ ] 1.2 Create Rails engine (Highlite::Engine) with importmap config
 - [ ] 1.3 Create Configuration class (pdf_js_version, default_colors, toolbar_tools, right_sidebar_partial)
 - [ ] 1.4 Create install generator (initializer + optional sidebar override template)
-- [ ] 1.5 Create viewer helper method: `pdf_highlighter_viewer(url:, document_id:, **options)`
+- [ ] 1.5 Create viewer helper method: `highlite_viewer(url:, document_id:, **options)`
 
 ### Phase 2: Core JavaScript — PDF Viewer
 - [ ] 2.1 Build pdf_renderer.js — PDF.js wrapper (load document, render page to canvas, text layer, get outline, render thumbnail)
@@ -111,7 +111,7 @@ pdf_highlighter/
 ### Phase 5: Right Sidebar (Default + Override)
 - [ ] 5.1 Build highlights_panel_controller.js — Lists highlights grouped by page, search/filter, clear all
 - [ ] 5.2 Build _right_sidebar.html.erb — Default partial with highlight cards (type badge, quoted text, page link)
-- [ ] 5.3 Implement override mechanism — check for app/views/pdf_highlighter/_right_sidebar.html.erb in host app, fall back to gem default
+- [ ] 5.3 Implement override mechanism — check for app/views/highlite/_right_sidebar.html.erb in host app, fall back to gem default
 
 ### Phase 6: Toolbar & Polish
 - [ ] 6.1 Build _toolbar.html.erb — Top bar (zoom controls, page info)

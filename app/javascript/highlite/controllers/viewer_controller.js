@@ -170,9 +170,11 @@ export default class extends Controller {
           this.scaleValue
         )
 
-        // Size text layer to match canvas
-        textLayer.style.width = `${Math.floor(viewport.width)}px`
-        textLayer.style.height = `${Math.floor(viewport.height)}px`
+        // Set --total-scale-factor for PDF.js text layer positioning.
+        // PDF.js TextLayer uses this for container width/height and font sizing.
+        // This should match viewport.scale (not multiplied by DPR — DPR is only
+        // for the canvas bitmap resolution, not for CSS layout).
+        textLayer.style.setProperty("--total-scale-factor", this.scaleValue)
 
         await this.renderer.renderTextLayer(pageNum, textLayer, viewport)
       }
@@ -189,6 +191,9 @@ export default class extends Controller {
 
     // Restore approximate scroll position
     this._restoreScrollRatio(scrollRatio)
+
+    // Notify highlight controller to re-render overlays at new scale
+    this.dispatch("pages-rerendered", { prefix: "highlite" })
   }
 
   _getScrollRatio() {
