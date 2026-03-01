@@ -2,7 +2,7 @@
 
 require_relative "highlite/version"
 require_relative "highlite/configuration"
-require_relative "highlite/engine"
+require_relative "highlite/engine" if defined?(Rails)
 
 module Highlite
   class Error < StandardError; end
