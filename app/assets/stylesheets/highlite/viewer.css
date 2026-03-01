@@ -78,6 +78,20 @@
 }
 
 /* ==========================================================================
+   Pages Container
+   Scrollable area holding all PDF pages, with padding so first/last pages
+   can be scrolled to the vertical center of the viewport.
+   ========================================================================== */
+
+.highlite-pages-container {
+  padding: 1.5rem 2rem calc(50vh - 100px);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-height: 100%;
+}
+
+/* ==========================================================================
    Page Wrapper
    Each PDF page is rendered inside this container.
    ========================================================================== */
@@ -85,12 +99,13 @@
 .highlite-page {
   position: relative;
   margin: 0 auto 16px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
-  background: white;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
+  background: #1a1a1a;
 }
 
 .highlite-page-canvas {
   display: block;
+  filter: invert(0.88) hue-rotate(180deg);
 }
 
 /* ==========================================================================
@@ -110,7 +125,7 @@
 }
 
 .highlite-error-detail {
-  font-size: 0.75rem;
+  font-size: 0.875rem;
   color: #9ca3af;
   max-width: 400px;
   word-break: break-word;
@@ -134,7 +149,7 @@
   align-items: center;
   gap: 0.375rem;
   padding: 0.375rem 0.5rem;
-  font-size: 0.75rem;
+  font-size: 0.875rem;
   color: #d1d5db;
   border-radius: 0.25rem;
   cursor: pointer;
@@ -170,12 +185,16 @@
 
 .highlite-thumbnail {
   position: relative;
-  display: inline-block;
+  display: block;
+  width: 100%;
   border: 2px solid transparent;
   border-radius: 0.25rem;
   overflow: hidden;
   cursor: pointer;
   transition: border-color 0.15s;
+  background: none;
+  padding: 0;
+  text-align: center;
 }
 
 .highlite-thumbnail:hover {
@@ -196,7 +215,7 @@
 .highlite-thumbnail-label {
   display: block;
   text-align: center;
-  font-size: 0.625rem;
+  font-size: 0.75rem;
   color: #9ca3af;
   padding: 0.125rem 0;
 }
@@ -225,7 +244,7 @@
 
 .highlite-type-badge {
   display: inline-block;
-  font-size: 0.625rem;
+  font-size: 0.75rem;
   font-weight: 500;
   text-transform: uppercase;
   letter-spacing: 0.05em;
@@ -244,7 +263,7 @@
 }
 
 .highlite-quote {
-  font-size: 0.75rem;
+  font-size: 0.875rem;
   line-height: 1.4;
   color: #d1d5db;
   border-left: 2px solid;
@@ -262,7 +281,7 @@
 
 .highlite-page-group-header,
 .highlite-panel-page-header {
-  font-size: 0.625rem;
+  font-size: 0.75rem;
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.05em;
@@ -307,7 +326,7 @@
 }
 
 .highlite-panel-badge {
-  font-size: 0.625rem;
+  font-size: 0.75rem;
   font-weight: 500;
   text-transform: uppercase;
   letter-spacing: 0.05em;
@@ -319,18 +338,43 @@
 
 .highlite-panel-time {
   margin-left: auto;
-  font-size: 0.625rem;
+  font-size: 0.75rem;
   color: #6b7280;
 }
 
+.highlite-panel-delete {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  padding: 0.25rem;
+  margin-left: 0.25rem;
+  background: none;
+  border: none;
+  border-radius: 0.25rem;
+  color: #6b7280;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.15s, color 0.15s, background-color 0.15s;
+}
+
+.highlite-panel-card:hover .highlite-panel-delete {
+  opacity: 1;
+}
+
+.highlite-panel-delete:hover {
+  color: #ef4444;
+  background: rgba(239, 68, 68, 0.1);
+}
+
 .highlite-panel-text {
-  font-size: 0.75rem;
+  font-size: 0.875rem;
   line-height: 1.4;
   color: #d1d5db;
 }
 
 .highlite-panel-empty {
-  font-size: 0.75rem;
+  font-size: 0.875rem;
   color: #6b7280;
   text-align: center;
   padding: 2rem 1rem;
@@ -352,7 +396,7 @@
   gap: 0.375rem;
   width: 100%;
   padding: 0.375rem 0.5rem;
-  font-size: 0.75rem;
+  font-size: 0.875rem;
   color: #d1d5db;
   border-radius: 0.25rem;
   cursor: pointer;
@@ -376,14 +420,168 @@
 
 .highlite-outline-page {
   flex-shrink: 0;
-  font-size: 0.625rem;
+  font-size: 0.75rem;
   color: #6b7280;
 }
 
 .highlite-sidebar-empty {
-  font-size: 0.75rem;
+  font-size: 0.875rem;
   color: #6b7280;
   text-align: center;
   padding: 2rem 1rem;
   font-style: italic;
+}
+
+/* ==========================================================================
+   Selection Popup — "Add highlight" button near text selection
+   ========================================================================== */
+
+.highlite-selection-popup {
+  position: fixed;
+  z-index: 10000;
+  padding: 0.375rem 0.75rem;
+  background: #1f2937;
+  color: #f9fafb;
+  font-size: 0.875rem;
+  font-weight: 500;
+  border: none;
+  border-radius: 0.375rem;
+  cursor: pointer;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  white-space: nowrap;
+  transition: background-color 0.1s;
+}
+
+.highlite-selection-popup:hover {
+  background: #374151;
+}
+
+.highlite-selection-popup:active {
+  background: #4b5563;
+}
+
+/* ==========================================================================
+   Note Dialog — Modal for adding a note to a highlight
+   ========================================================================== */
+
+.highlite-note-dialog-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 10001;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.highlite-note-dialog {
+  background: #1f2937;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 0.5rem;
+  padding: 1.25rem;
+  width: 100%;
+  max-width: 400px;
+  margin: 1rem;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.highlite-note-dialog-title {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 600;
+  color: #f9fafb;
+}
+
+.highlite-note-dialog-preview {
+  margin: 0;
+  font-size: 0.875rem;
+  line-height: 1.4;
+  color: #9ca3af;
+  border-left: 2px solid #4b5563;
+  padding-left: 0.5rem;
+}
+
+.highlite-note-dialog-label {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #d1d5db;
+}
+
+.highlite-note-dialog-textarea {
+  width: 100%;
+  padding: 0.5rem;
+  font-size: 0.875rem;
+  line-height: 1.5;
+  color: #f9fafb;
+  background: #111827;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 0.375rem;
+  resize: vertical;
+  font-family: inherit;
+  box-sizing: border-box;
+}
+
+.highlite-note-dialog-textarea:focus {
+  outline: none;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.3);
+}
+
+.highlite-note-dialog-textarea::placeholder {
+  color: #6b7280;
+}
+
+.highlite-note-dialog-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+}
+
+.highlite-note-dialog-cancel,
+.highlite-note-dialog-submit {
+  padding: 0.375rem 0.875rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  border-radius: 0.375rem;
+  border: none;
+  cursor: pointer;
+  transition: background-color 0.1s;
+}
+
+.highlite-note-dialog-cancel {
+  background: transparent;
+  color: #9ca3af;
+}
+
+.highlite-note-dialog-cancel:hover {
+  background: rgba(255, 255, 255, 0.05);
+  color: #d1d5db;
+}
+
+.highlite-note-dialog-submit {
+  background: #3b82f6;
+  color: #ffffff;
+}
+
+.highlite-note-dialog-submit:hover {
+  background: #2563eb;
+}
+
+.highlite-note-dialog-submit:active {
+  background: #1d4ed8;
+}
+
+/* ==========================================================================
+   Highlight Note — Displayed in highlight cards in the panel
+   ========================================================================== */
+
+.highlite-panel-note {
+  font-size: 0.8125rem;
+  line-height: 1.4;
+  color: #9ca3af;
+  font-style: italic;
+  margin-top: 0.125rem;
 }

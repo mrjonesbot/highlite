@@ -1,8 +1,8 @@
 import { Application } from "@hotwired/stimulus"
-import ViewerController from "./controllers/viewer_controller"
-import HighlightController from "./controllers/highlight_controller"
-import SidebarController from "./controllers/sidebar_controller"
-import HighlightsPanelController from "./controllers/highlights_panel_controller"
+import ViewerController from "highlite/controllers/viewer_controller"
+import HighlightController from "highlite/controllers/highlight_controller"
+import SidebarController from "highlite/controllers/sidebar_controller"
+import HighlightsPanelController from "highlite/controllers/highlights_panel_controller"
 
 /**
  * Register all highlite Stimulus controllers with the given application.
@@ -26,5 +26,5 @@ const application = window.Stimulus || Application.start()
 registerControllers(application)
 
 export { ViewerController, HighlightController, SidebarController, HighlightsPanelController }
-export { PdfRenderer } from "./lib/pdf_renderer"
-export { HighlightStore } from "./lib/highlight_store"
+export { PdfRenderer } from "highlite/lib/pdf_renderer"
+export { HighlightStore } from "highlite/lib/highlight_store"

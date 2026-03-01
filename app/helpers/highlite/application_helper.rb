@@ -6,7 +6,7 @@ module Highlite
       viewer_options = {
         url: url,
         document_id: document_id,
-        scale: options.fetch(:scale, 1.5),
+        scale: options.fetch(:scale, 2.25),
         show_toolbar: options.fetch(:show_toolbar, true),
         show_left_sidebar: options.fetch(:show_left_sidebar, true),
         show_right_sidebar: options.fetch(:show_right_sidebar, true),

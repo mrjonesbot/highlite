@@ -1,5 +1,5 @@
 import { Controller } from "@hotwired/stimulus"
-import { PdfRenderer } from "../lib/pdf_renderer"
+import { PdfRenderer } from "highlite/lib/pdf_renderer"
 
 /**
  * SidebarController — Stimulus controller for the left sidebar.
@@ -371,7 +371,14 @@ export default class extends Controller {
 
     if (viewerController?.renderer) {
       try {
-        await viewerController.renderer.renderThumbnail(pageNum, canvas, 0.2)
+        // Calculate scale to fill sidebar width
+        const containerWidth = this.thumbnailsContainerTarget.clientWidth - 8 // account for border/padding
+        const viewport = await viewerController.renderer.getViewport(pageNum, 1.0)
+        const scale = containerWidth / viewport.width
+        await viewerController.renderer.renderThumbnail(pageNum, canvas, scale)
+        // Clear inline dimensions set by renderPage so CSS width:100% takes effect
+        canvas.style.width = ""
+        canvas.style.height = ""
       } catch {
         // Thumbnail rendering may fail for some pages; degrade gracefully
       }

@@ -1,5 +1,5 @@
 import { Controller } from "@hotwired/stimulus"
-import { PdfRenderer } from "../lib/pdf_renderer"
+import { PdfRenderer } from "highlite/lib/pdf_renderer"
 
 /**
  * ViewerController — Main Stimulus controller for the PDF viewer center panel.
@@ -38,7 +38,7 @@ export default class extends Controller {
   static values = {
     url: String,
     documentId: String,
-    scale: { type: Number, default: 1.5 },
+    scale: { type: Number, default: 2.25 },
   }
 
   connect() {
@@ -295,7 +295,7 @@ export default class extends Controller {
     const index = pageNum - 1
     if (index < 0 || index >= this._pageElements.length) return
 
-    this._pageElements[index].wrapper.scrollIntoView({ behavior: "smooth" })
+    this._pageElements[index].wrapper.scrollIntoView({ behavior: "smooth", block: "start" })
   }
 
   // ---------------------------------------------------------------------------

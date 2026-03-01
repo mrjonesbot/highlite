@@ -56,6 +56,7 @@ export class HighlightStore {
       color: highlight.color || "#ffd54f",
       rects: highlight.rects || [],
       text: highlight.text || "",
+      note: highlight.note || "",
       createdAt: new Date().toISOString(),
     }
 

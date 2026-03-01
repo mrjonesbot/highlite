@@ -5,8 +5,10 @@ module Highlite
     isolate_namespace Highlite
 
     initializer "highlite.assets" do |app|
-      app.config.assets.paths << root.join("app/assets/stylesheets")
-      app.config.assets.paths << root.join("app/javascript")
+      if app.config.respond_to?(:assets)
+        app.config.assets.paths << root.join("app/assets/stylesheets")
+        app.config.assets.paths << root.join("app/javascript")
+      end
     end
 
     initializer "highlite.importmap", before: "importmap" do |app|

@@ -1,5 +1,5 @@
 import { Controller } from "@hotwired/stimulus"
-import { HighlightStore } from "../lib/highlight_store"
+import { HighlightStore } from "highlite/lib/highlight_store"
 
 /**
  * HighlightController — Stimulus controller for drawing and managing highlights.
@@ -38,6 +38,11 @@ export default class extends Controller {
     this._drawPreview = null
     this._drawPage = null
 
+    // Pending text selection state (for popup/dialog flow)
+    this._pendingSelection = null
+    this._popup = null
+    this._noteDialog = null
+
     // Bind event handlers
     this._onDocumentLoaded = this._handleDocumentLoaded.bind(this)
     this._onMouseUp = this._handleMouseUp.bind(this)
@@ -46,6 +51,7 @@ export default class extends Controller {
     this._onTouchStart = this._handleTouchStart.bind(this)
     this._onTouchMove = this._handleTouchMove.bind(this)
     this._onTouchEnd = this._handleTouchEnd.bind(this)
+    this._onKeyDown = this._handleKeyDown.bind(this)
 
     // External store sync handlers (e.g. when highlights_panel clears all)
     this._onExternalClear = this._handleExternalClear.bind(this)
@@ -73,6 +79,7 @@ export default class extends Controller {
       passive: false,
     })
     this.element.addEventListener("touchend", this._onTouchEnd)
+    document.addEventListener("keydown", this._onKeyDown)
   }
 
   disconnect() {
@@ -94,7 +101,10 @@ export default class extends Controller {
     this.element.removeEventListener("touchstart", this._onTouchStart)
     this.element.removeEventListener("touchmove", this._onTouchMove)
     this.element.removeEventListener("touchend", this._onTouchEnd)
+    document.removeEventListener("keydown", this._onKeyDown)
 
+    this._dismissPopup()
+    this._dismissNoteDialog()
     this._cleanupDrawPreview()
   }
 
@@ -179,7 +189,8 @@ export default class extends Controller {
       return
     }
 
-    if (this.activeToolValue !== "text") return
+    // Don't interfere with area tool
+    if (this.activeToolValue === "area") return
 
     const selection = window.getSelection()
     if (!selection || selection.isCollapsed || !selection.toString().trim()) {
@@ -195,16 +206,218 @@ export default class extends Controller {
 
     if (rects.length === 0) return
 
+    // Store pending selection and show popup
+    this._pendingSelection = { pageNum, text, rects }
+    this._showHighlightPopup(event.clientX, event.clientY)
+  }
+
+  // ---------------------------------------------------------------------------
+  // Highlight popup + note dialog
+  // ---------------------------------------------------------------------------
+
+  /**
+   * Show a floating "Add highlight" button near the text selection.
+   */
+  _showHighlightPopup(clientX, clientY) {
+    this._dismissPopup()
+
+    const popup = document.createElement("button")
+    popup.type = "button"
+    popup.className = "highlite-selection-popup"
+    popup.textContent = "Add highlight"
+
+    document.body.appendChild(popup)
+
+    // Position near the selection end, adjusted to stay in viewport
+    const popupRect = popup.getBoundingClientRect()
+    let left = clientX - popupRect.width / 2
+    let top = clientY - popupRect.height - 10
+
+    // Keep within viewport
+    left = Math.max(8, Math.min(left, window.innerWidth - popupRect.width - 8))
+    if (top < 8) top = clientY + 20
+
+    popup.style.left = `${left}px`
+    popup.style.top = `${top}px`
+
+    popup.addEventListener("mousedown", (e) => {
+      // Prevent selection from being cleared
+      e.preventDefault()
+      e.stopPropagation()
+    })
+
+    popup.addEventListener("click", (e) => {
+      e.stopPropagation()
+      this._dismissPopup()
+      this._showNoteDialog()
+    })
+
+    this._popup = popup
+
+    // Dismiss on click-away (delayed to avoid catching the current mouseup)
+    requestAnimationFrame(() => {
+      this._popupClickAway = (e) => {
+        if (this._popup && !this._popup.contains(e.target)) {
+          this._dismissPopup()
+          this._pendingSelection = null
+        }
+      }
+      document.addEventListener("mousedown", this._popupClickAway)
+    })
+  }
+
+  /**
+   * Dismiss the floating popup button.
+   */
+  _dismissPopup() {
+    if (this._popup) {
+      this._popup.remove()
+      this._popup = null
+    }
+    if (this._popupClickAway) {
+      document.removeEventListener("mousedown", this._popupClickAway)
+      this._popupClickAway = null
+    }
+  }
+
+  /**
+   * Show a dialog with a textarea for entering a note.
+   */
+  _showNoteDialog() {
+    this._dismissNoteDialog()
+
+    const overlay = document.createElement("div")
+    overlay.className = "highlite-note-dialog-overlay"
+
+    const dialog = document.createElement("div")
+    dialog.className = "highlite-note-dialog"
+
+    const title = document.createElement("h3")
+    title.className = "highlite-note-dialog-title"
+    title.textContent = "Add highlight"
+
+    const preview = document.createElement("p")
+    preview.className = "highlite-note-dialog-preview"
+    const previewText = this._pendingSelection?.text || ""
+    preview.textContent =
+      previewText.length > 120
+        ? previewText.substring(0, 120) + "..."
+        : previewText
+
+    const label = document.createElement("label")
+    label.className = "highlite-note-dialog-label"
+    label.textContent = "Note (optional)"
+
+    const textarea = document.createElement("textarea")
+    textarea.className = "highlite-note-dialog-textarea"
+    textarea.placeholder = "Add a note about this highlight..."
+    textarea.rows = 3
+
+    const actions = document.createElement("div")
+    actions.className = "highlite-note-dialog-actions"
+
+    const cancelBtn = document.createElement("button")
+    cancelBtn.type = "button"
+    cancelBtn.className = "highlite-note-dialog-cancel"
+    cancelBtn.textContent = "Cancel"
+
+    const submitBtn = document.createElement("button")
+    submitBtn.type = "button"
+    submitBtn.className = "highlite-note-dialog-submit"
+    submitBtn.textContent = "Save"
+
+    actions.appendChild(cancelBtn)
+    actions.appendChild(submitBtn)
+
+    dialog.appendChild(title)
+    dialog.appendChild(preview)
+    dialog.appendChild(label)
+    dialog.appendChild(textarea)
+    dialog.appendChild(actions)
+    overlay.appendChild(dialog)
+    document.body.appendChild(overlay)
+
+    this._noteDialog = overlay
+
+    // Focus the textarea
+    requestAnimationFrame(() => textarea.focus())
+
+    // Event handlers
+    cancelBtn.addEventListener("click", () => {
+      this._dismissNoteDialog()
+      this._pendingSelection = null
+      window.getSelection()?.removeAllRanges()
+    })
+
+    submitBtn.addEventListener("click", () => {
+      this._submitHighlight(textarea.value.trim())
+    })
+
+    overlay.addEventListener("click", (e) => {
+      if (e.target === overlay) {
+        this._dismissNoteDialog()
+        this._pendingSelection = null
+        window.getSelection()?.removeAllRanges()
+      }
+    })
+
+    // Submit on Ctrl/Cmd+Enter
+    textarea.addEventListener("keydown", (e) => {
+      if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
+        e.preventDefault()
+        this._submitHighlight(textarea.value.trim())
+      }
+    })
+  }
+
+  /**
+   * Dismiss the note dialog.
+   */
+  _dismissNoteDialog() {
+    if (this._noteDialog) {
+      this._noteDialog.remove()
+      this._noteDialog = null
+    }
+  }
+
+  /**
+   * Create the highlight with the pending selection data and optional note.
+   */
+  _submitHighlight(note) {
+    if (!this._pendingSelection) return
+
+    const { pageNum, text, rects } = this._pendingSelection
+
     this.store.add({
       page: pageNum,
       type: "text",
       color: this.activeColorValue,
       rects,
       text,
+      note,
     })
 
-    selection.removeAllRanges()
+    window.getSelection()?.removeAllRanges()
     this._renderPageHighlights(pageNum)
+
+    this._dismissNoteDialog()
+    this._pendingSelection = null
+  }
+
+  /**
+   * Handle Escape key to dismiss popup or dialog.
+   */
+  _handleKeyDown(event) {
+    if (event.key === "Escape") {
+      if (this._noteDialog) {
+        this._dismissNoteDialog()
+        this._pendingSelection = null
+        window.getSelection()?.removeAllRanges()
+      } else if (this._popup) {
+        this._dismissPopup()
+        this._pendingSelection = null
+      }
+    }
   }
 
   /**
@@ -456,6 +669,7 @@ export default class extends Controller {
           width: ${rect.w}px;
           height: ${rect.h}px;
           background-color: ${highlight.color};
+          opacity: 0.3;
           mix-blend-mode: multiply;
           cursor: pointer;
           transition: opacity 0.15s;
@@ -478,10 +692,10 @@ export default class extends Controller {
 
         // Hover effect
         div.addEventListener("mouseenter", () => {
-          div.style.opacity = "0.6"
+          div.style.opacity = "0.45"
         })
         div.addEventListener("mouseleave", () => {
-          div.style.opacity = "1"
+          div.style.opacity = "0.3"
         })
 
         layer.appendChild(div)

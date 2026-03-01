@@ -1,5 +1,5 @@
 import { Controller } from "@hotwired/stimulus"
-import { HighlightStore } from "../lib/highlight_store"
+import { HighlightStore } from "highlite/lib/highlight_store"
 
 /**
  * HighlightsPanelController — Stimulus controller for the default right sidebar.
@@ -180,15 +180,36 @@ export default class extends Controller {
     time.className = "highlite-panel-time"
     time.textContent = this._formatTime(highlight.createdAt)
 
-    // Header row: swatch + badge + time
+    // Delete button
+    const deleteBtn = document.createElement("button")
+    deleteBtn.type = "button"
+    deleteBtn.className = "highlite-panel-delete"
+    deleteBtn.title = "Delete highlight"
+    deleteBtn.innerHTML =
+      '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>'
+    deleteBtn.addEventListener("click", (e) => {
+      e.stopPropagation()
+      this.store.remove(highlight.id)
+    })
+
+    // Header row: swatch + badge + time + delete
     const headerRow = document.createElement("div")
     headerRow.className = "highlite-panel-card-header"
     headerRow.appendChild(swatch)
     headerRow.appendChild(badge)
     headerRow.appendChild(time)
+    headerRow.appendChild(deleteBtn)
 
     card.appendChild(headerRow)
     card.appendChild(text)
+
+    // Note (if present)
+    if (highlight.note) {
+      const note = document.createElement("p")
+      note.className = "highlite-panel-note"
+      note.textContent = this._truncate(highlight.note, 120)
+      card.appendChild(note)
+    }
 
     // Click to navigate to highlight and select it
     card.addEventListener("click", () => {
