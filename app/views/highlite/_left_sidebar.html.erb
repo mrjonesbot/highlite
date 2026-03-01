@@ -1,0 +1,43 @@
+<%# Left sidebar — Outline and Pages tabs with dark theme %>
+
+<div class="flex flex-col h-full bg-gray-900 text-gray-300 border-r border-gray-700">
+  <%# Tab bar %>
+  <div class="flex border-b border-gray-700">
+    <button type="button"
+            data-action="highlite--sidebar#showOutline"
+            data-highlite--sidebar-target="outlineTab"
+            class="flex-1 px-4 py-2.5 text-xs font-medium text-gray-500 border-b-2 border-transparent hover:text-gray-300 transition-colors highlite-tab-active">
+      Outline
+    </button>
+    <button type="button"
+            data-action="highlite--sidebar#showPages"
+            data-highlite--sidebar-target="pagesTab"
+            class="flex-1 px-4 py-2.5 text-xs font-medium text-gray-500 border-b-2 border-transparent hover:text-gray-300 transition-colors">
+      Pages
+    </button>
+  </div>
+
+  <%# Outline panel %>
+  <div data-highlite--sidebar-target="outlinePanel"
+       class="flex-1 overflow-y-auto p-3">
+    <div class="text-xs text-gray-500 italic py-4 text-center">
+      Loading outline&hellip;
+    </div>
+  </div>
+
+  <%# Pages (thumbnails) panel %>
+  <div data-highlite--sidebar-target="pagesPanel"
+       class="flex-1 overflow-y-auto p-3 hidden">
+    <div data-highlite--sidebar-target="thumbnailsContainer"
+         class="grid grid-cols-1 gap-2">
+      <div class="text-xs text-gray-500 italic py-4 text-center">
+        Loading pages&hellip;
+      </div>
+    </div>
+  </div>
+
+  <%# Page counter at bottom %>
+  <div data-highlite--sidebar-target="pageCounter"
+       class="border-t border-gray-700 px-3 py-2 text-xs text-gray-500 text-center">
+  </div>
+</div>

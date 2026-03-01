@@ -1,0 +1,20 @@
+# frozen_string_literal: true
+
+Highlite.configure do |config|
+  # PDF.js version (served from jsDelivr CDN)
+  # config.pdf_js_version = "5.4.624"
+
+  # Default highlight colors (rgba strings)
+  # config.default_colors = [
+  #   "rgba(255, 226, 143, 0.5)", # yellow
+  #   "rgba(166, 227, 161, 0.5)", # green
+  #   "rgba(137, 180, 250, 0.5)", # blue
+  #   "rgba(245, 194, 231, 0.5)"  # pink
+  # ]
+
+  # Enabled toolbar tools (:text for text selection, :area for rectangle drawing)
+  # config.toolbar_tools = [:text, :area]
+
+  # Override the right sidebar partial (set to a partial path string)
+  # config.right_sidebar_partial = "my_app/custom_sidebar"
+end

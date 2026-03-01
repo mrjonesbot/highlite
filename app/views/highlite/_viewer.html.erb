@@ -1,0 +1,63 @@
+<%# Main 3-panel layout for the PDF viewer.
+     Locals: url, document_id, scale, show_toolbar, show_left_sidebar,
+             show_right_sidebar, right_sidebar_partial %>
+
+<div class="flex flex-col h-screen overflow-hidden"
+     data-controller="highlite--viewer highlite--highlight"
+     data-highlite--viewer-url-value="<%= url %>"
+     data-highlite--viewer-document-id-value="<%= document_id %>"
+     data-highlite--viewer-scale-value="<%= scale %>"
+     data-highlite--highlight-document-id-value="<%= document_id %>">
+
+  <% if show_toolbar %>
+    <%= render "highlite/toolbar" %>
+  <% end %>
+
+  <div class="flex flex-1 min-h-0">
+    <%# Left Sidebar — Outline & Pages %>
+    <% if show_left_sidebar %>
+      <div class="w-[280px] flex-shrink-0" data-controller="highlite--sidebar">
+        <%= render "highlite/left_sidebar" %>
+      </div>
+    <% end %>
+
+    <%# Center — PDF Viewer %>
+    <div class="flex-1 relative bg-gray-200 overflow-hidden">
+      <%# Loading overlay %>
+      <div data-highlite--viewer-target="loader"
+           class="absolute inset-0 z-40 flex items-center justify-center bg-gray-200">
+        <div class="flex flex-col items-center gap-3 text-gray-500">
+          <svg class="animate-spin h-8 w-8" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+          </svg>
+          <span class="text-sm">Loading PDF&hellip;</span>
+        </div>
+      </div>
+
+      <%# Scrollable pages container %>
+      <div data-highlite--viewer-target="pagesContainer"
+           class="h-full overflow-y-auto px-4 py-6">
+      </div>
+
+      <%# Floating annotation toolbar %>
+      <%= render "highlite/floating_toolbar" %>
+    </div>
+
+    <%# Right Sidebar — Highlights panel (overridable) %>
+    <% if show_right_sidebar %>
+      <div class="w-[320px] flex-shrink-0"
+           data-controller="highlite--highlights-panel"
+           data-highlite--highlights-panel-document-id-value="<%= document_id %>">
+        <% if right_sidebar_partial.present? %>
+          <%= render partial: right_sidebar_partial %>
+        <% else %>
+          <%= render "highlite/right_sidebar" %>
+        <% end %>
+      </div>
+    <% end %>
+  </div>
+
+  <%# Page info (used by viewer controller) %>
+  <div data-highlite--viewer-target="pageInfo" class="hidden"></div>
+</div>

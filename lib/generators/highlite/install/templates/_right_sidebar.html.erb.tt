@@ -1,0 +1,16 @@
+<%# Custom right sidebar for Highlite %>
+<%# This partial receives: url, document_id, and options %>
+<%# Customize below to fit your application's needs %>
+
+<div data-controller="highlite--highlights-panel"
+     data-highlite--highlights-panel-document-id-value="<%%= document_id %>"
+     class="h-full flex flex-col">
+  <div class="p-3 border-b border-gray-200">
+    <h3 class="text-sm font-semibold text-gray-700">Highlights</h3>
+  </div>
+
+  <div data-highlite--highlights-panel-target="list"
+       class="flex-1 overflow-y-auto p-3 space-y-2">
+    <%# Highlights will be rendered here by the controller %>
+  </div>
+</div>
